@@ -1,5 +1,6 @@
 package fifo
 
+import CGRA.Crossbar.CrossbarTop
 import chisel3._
 import chisel3.util._
 
@@ -44,4 +45,16 @@ class RegFifo[T <: Data](gen: T, depth: Int) extends Fifo(gen: T, depth: Int) {
   io.deq.bits := memReg(readPtr)
   io.enq.ready := !fullReg
   io.deq.valid := !emptyReg
+}
+
+object RegFifo_u extends App {
+  // These lines generate the Verilog output
+  println(
+    new (chisel3.stage.ChiselStage).emitVerilog(
+      new RegFifo(gen = UInt(32.W),depth = 16) ,
+      Array(
+        "--target-dir", "output/"+"RegFifo"
+      )
+    )
+  )
 }

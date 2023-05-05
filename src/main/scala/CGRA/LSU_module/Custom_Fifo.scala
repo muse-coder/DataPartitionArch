@@ -34,7 +34,7 @@ class Custom_Fifo[T <: Data](gen: T, depth: Int) extends Fifo(gen: T, depth: Int
   }
 
   // the register based memory
-  val memReg = Reg(Vec(depth, gen))
+  val memReg = SyncReadMem(depth, gen)
 
   val incrRead = WireInit(false.B)
   val incrWrite = WireInit(false.B)
@@ -61,4 +61,16 @@ class Custom_Fifo[T <: Data](gen: T, depth: Int) extends Fifo(gen: T, depth: Int
   io.enq.ready := !fullReg
   io.deq.valid := !emptyReg
 //  io.enq.
+}
+
+
+object Custom_Fifo extends App{
+  println(
+    new (chisel3.stage.ChiselStage).emitVerilog(
+      new Custom_Fifo(depth = 16,gen = UInt(32.W)),
+      Array(
+        "--target-dir","output/Custom_Fifo"
+      )
+    )
+  )
 }

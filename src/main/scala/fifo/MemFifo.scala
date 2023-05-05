@@ -86,3 +86,14 @@ class MemFifo[T <: Data](gen: T, depth: Int) extends Fifo(gen: T, depth: Int) {
   io.enq.ready := !fullReg
   io.deq.valid := stateReg === valid || stateReg === full
 }
+object MemFifo_u extends App {
+  // These lines generate the Verilog output
+  println(
+    new (chisel3.stage.ChiselStage).emitVerilog(
+      new MemFifo(gen = UInt(32.W),depth = 16) ,
+      Array(
+        "--target-dir", "output/"+"MemFifo"
+      )
+    )
+  )
+}
