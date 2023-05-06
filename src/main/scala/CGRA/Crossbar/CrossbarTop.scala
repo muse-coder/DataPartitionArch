@@ -1,10 +1,11 @@
 package CGRA.Crossbar
 
-import CGRA.LSU_module.{LSU, LsuCrossbarIO}
+import CGRA.LSU_module._
+import CGRA._
 import chisel3.util._
 import chisel3._
+//import CGRA.
 class CrossbarTop [T <: Data ](addrWidth:Int,dataWidth:Int) extends Module {
-
 
   val crossbar_lsu_io = IO(Vec(8,Flipped(new LsuCrossbarIO(dType = UInt(dataWidth.W),addrWidth = addrWidth))))
   val bank_crossbar_io = IO(Vec(8,new BankCrossbarIO(dType = UInt(dataWidth.W))))
@@ -45,15 +46,6 @@ class CrossbarTop [T <: Data ](addrWidth:Int,dataWidth:Int) extends Module {
 
 
 //   crossbar
-class BankCrossbarIO [T <: Data ](dType:T,addrWidth:Int= 8) extends Bundle {
-  val dataFromBank = Input(dType)
-  val dataInValid = Input(Bool())
-  val addressToBank = Output(UInt(addrWidth.W))
-  val dataToBank = Output(dType)
-
-  val dataOutValid = Output(Bool())
-  val mode = Output(Bool())
-}
 
 
 class Crossbar_Submodule(width:Int) extends Module {

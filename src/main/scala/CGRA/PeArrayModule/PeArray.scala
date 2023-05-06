@@ -1,18 +1,12 @@
 package CGRA.PeArrayModule
+import CGRA.PeArrayIO
 import CGRA.PeStructure.Pe
 import chisel3._
 import chisel3.util._
 
 class PeArray[T<: Data] (dType :T,column:Int=4,row:Int=4,instWidth:Int=13) extends  Module{
-  val io= IO(new Bundle{
-    val PErowConfig = Input(Vec(row,UInt(instWidth.W)))
-    val config_sel = Input(Vec(row,UInt(2.W)))
-    val row_left_in = Input(Vec(row,dType))
-    val row_up_in = Input(Vec(column, dType))
-    val row_left_out = Output(Vec(row,dType))
-    val row_up_out = Output(Vec(column, dType))
+  val io = IO(new PeArrayIO(row=row,column=column,instWidth=instWidth,dType=dType))
 
-  })
   val PeRows = Array.fill(row-1){Module (new PeRow(dType = dType,hasSouth = true,column = column,instWidth = instWidth))}
 
   val PeLastRow=Module (new PeRow(dType = dType,hasSouth = false,column = column,instWidth = instWidth))

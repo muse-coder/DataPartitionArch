@@ -2,6 +2,7 @@ package CGRA.LSU_module
 import CGRA.PeStructure.Pe
 import chisel3._
 import chisel3.util._
+import CGRA._
 class Count (depth:Int=16)extends Module{
     val io = IO(new Bundle() {
         val inc = Input(UInt(1.W))
@@ -23,11 +24,7 @@ class Count (depth:Int=16)extends Module{
 }
 
 class IVG (countDepth:Int=16)extends Module {
-    val config_io = IO(new Bundle() {
-        val max_i = Input(UInt(log2Ceil(countDepth).W))
-        val max_j = Input(UInt(log2Ceil(countDepth).W))
-        val en = Input(UInt(1.W))
-    })
+    val config_io = IO(new IvgConfigIO(countDepth= countDepth))
 
     val ivg_lsu_io = IO(Flipped(new LsuIvgIO(countDepth = countDepth)))
 

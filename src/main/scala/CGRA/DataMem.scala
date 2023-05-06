@@ -1,50 +1,48 @@
 package CGRA
-import CGRA.Crossbar.CrossbarTop
+import CGRA._
 import chisel3._
 import chisel3.util._
 
 import scala.math._
 class DataMem [T<:Data] (dataWidth:Int,addrWidth:Int)extends Module {
-  val io = IO(new Bundle {
-    val data_from_crossbar = Input(Vec(8,UInt(dataWidth.W)))
-    val write_address_from_crossbar = Input(Vec(8, UInt(addrWidth.W)))
-    val read_address_from_crossbar = Input(Vec(8, UInt(addrWidth.W)))
+  val external_io = IO(new ExternalIO(dataWidth = dataWidth, configWidth = 11))
 
-    val external_data_in = Input(UInt(dataWidth.W))
-    val external_control = Input(UInt(11.W))
-    val data_to_crossbar = Output(Vec(8,UInt(dataWidth.W)))
-    val external_data_out = Output(UInt(dataWidth.W))
-  })
+  val bankCrossbar_io = IO(Vec(8,Flipped(new BankCrossbarIO(dType = UInt(32.W),addrWidth = addrWidth))))
+
   val bank_select = Wire(Vec(8,UInt(1.W)))
 
-  val external_output_sel = io.external_control(8+2,8)
+  val external_output_sel = external_io.external_control(8+2,8)
   val data_to_bank = Wire(Vec(8,UInt(dataWidth.W)))
 
   val depth = pow(2, addrWidth).toInt
-  val mems = List.fill(8)(SyncReadMem(depth, UInt(32.W)))
+  val Srams = List.fill(8)(SyncReadMem(depth, UInt(32.W)))
 
-
+  val readValidReg = Reg(Vec(8,Bool()))
+//  Srams(1).write()
   for (i <- 0 until 8){
-    bank_select(i) := io.external_control(i)
+    bank_select(i) := external_io.external_control(i)
     when(bank_select(i)===1.U){
-      data_to_bank(i) := io.data_from_crossbar(i)
+      data_to_bank(i) := bankCrossbar_io(i).dataToBank
     }.otherwise{
-      data_to_bank(i) := io.external_data_in
+      data_to_bank(i) := external_io.external_data_in
     }
-    mems(i).write(io.write_address_from_crossbar(i),data_to_bank(i))
-
-    io.data_to_crossbar(i) := mems(i).read(io.read_address_from_crossbar(i))
+    when(bankCrossbar_io(i).mode===true.B && bankCrossbar_io(i).dataOutValid===true.B){
+      Srams(i).write(bankCrossbar_io(i).addressToBank,data_to_bank(i))
+    }
+    bankCrossbar_io(i).dataFromBank := Srams(i).read(bankCrossbar_io(i).addressToBank)
+    readValidReg(i) := ~(bankCrossbar_io(i).mode)
+    bankCrossbar_io(i).dataInValid := readValidReg(i)
   }
 
-  io.external_data_out := MuxLookup(external_output_sel, 0.U, Array(
-    0.U -> io.data_to_crossbar(0),
-    1.U -> io.data_to_crossbar(1),
-    2.U -> io.data_to_crossbar(2),
-    3.U -> io.data_to_crossbar(3),
-    4.U -> io.data_to_crossbar(4),
-    5.U -> io.data_to_crossbar(5),
-    6.U -> io.data_to_crossbar(6),
-    7.U -> io.data_to_crossbar(7),
+  external_io.external_data_out := MuxLookup(external_output_sel, 0.U, Array(
+    0.U -> bankCrossbar_io(0).dataFromBank,
+    1.U -> bankCrossbar_io(0).dataFromBank,
+    2.U -> bankCrossbar_io(0).dataFromBank,
+    3.U -> bankCrossbar_io(0).dataFromBank,
+    4.U -> bankCrossbar_io(0).dataFromBank,
+    5.U -> bankCrossbar_io(0).dataFromBank,
+    6.U -> bankCrossbar_io(0).dataFromBank,
+    7.U -> bankCrossbar_io(0).dataFromBank,
   ))
 
 }

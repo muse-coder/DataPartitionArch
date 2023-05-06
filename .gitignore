@@ -12,4 +12,5 @@
 /Makefile
 /output.txt
 /print.txt
-/target
+# /target/scalar
+/target\scala-2.12\classes

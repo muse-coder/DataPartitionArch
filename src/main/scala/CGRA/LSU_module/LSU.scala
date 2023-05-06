@@ -1,43 +1,17 @@
 package CGRA.LSU_module
 import chisel3.{Input, UInt, _}
 import chisel3.util._
-
-class LsuCrossbarIO[T<:Data] (dType :T,addrWidth :Int) extends Bundle {
-  val dataFromCrossbar = Input(dType)
-  val dataInValid = Input(Bool())
-
-  val dataToCrossbar = Output(dType)
-  val dataOutValid = Output(Bool())
-
-  val addresToCrossbar = Output(UInt(addrWidth.W))
-  val bankID = Output(UInt(3.W))
-  val readOrWrite = Output(UInt(1.W))
-}
-
-class LsuPeIO[T<:Data] (dType :T) extends Bundle {
-  val dataFromPE = Input(dType)
-  val readFifo = Input(Bool())
-  val dataToPE = Output(dType)
-  val valid = Output(Bool())
-}
-
-class LsuIvgIO (countDepth:Int=16) extends Bundle {
-  val i = Input(UInt(log2Ceil(countDepth).W))
-  val j = Input(UInt(log2Ceil(countDepth).W))
-}
+import CGRA._
 
 
-class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNum:Int=8,countDepth:Int=16) extends Module {
+class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=36,bankNum:Int=8,countDepth:Int=16) extends Module {
   val lsu_crossbar_io = IO(new LsuCrossbarIO(dType = dType, addrWidth = addrWidth))
   val lsu_pe_io = IO(new LsuPeIO(dType =dType ))
   val lsu_ivg_io =  IO(new LsuIvgIO(countDepth = countDepth))
-  val config_io =  IO(new Bundle {
-    val bus = Input(UInt(LSU_InstWidth.W)) //bi 8
-    val en = Input(UInt(1.W))
-  })
+  val config_io = IO(new LsuConfigIO(LSU_InstWidth=LSU_InstWidth)   )
 
 
-  assume(LSU_InstWidth == ( addrWidth*3 + 3*log2Ceil(bankNum) + 2))
+  assume(LSU_InstWidth == ( addrWidth*3 + 3*log2Ceil(bankNum) + 3))
   val LSU_configReg = RegInit(UInt(LSU_InstWidth.W),0.U)
 //  LSU_configReg := io.LSU_config
   val configVec = LSU_configReg.asTypeOf(MixedVec(Seq(
@@ -49,6 +23,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNu
     UInt(addrWidth.W),//d1_N 8
     UInt(1.W),//storeSel 1  bit1 from load  bit0 from Pe
     UInt(1.W),// mode  store 1 or load 0
+    Bool(),//readFifo 1
   )))
   val bi = configVec(0)
   val bj = configVec(1)
@@ -58,7 +33,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNu
   val d1_N = configVec(5)
   val storeSel = configVec(6)
   val  mode = configVec(7)
-
+  val readFifo = configVec(8)
 
 
   val en = config_io.en
@@ -94,9 +69,9 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNu
   val Fifo = Module(new Custom_Fifo(gen = dType,depth = 16))
   Fifo.io.enq.bits := LDR
   Fifo.io.enq.valid:= LDR_Valid
-  Fifo.io.deq.ready:= lsu_pe_io.readFifo
+  Fifo.io.deq.ready:= readFifo
   lsu_pe_io.dataToPE := Fifo.io.deq.bits
-  lsu_pe_io.valid := Fifo.io.deq.valid
+//  lsu_pe_io.valid := Fifo.io.deq.valid
   lsu_crossbar_io.dataToCrossbar := STR
 
 
@@ -150,7 +125,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNu
 object LSU_u extends App{
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=35,bankNum=8,countDepth=16),
+      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=36,bankNum=8,countDepth=16),
       Array(
         "--target-dir","output/LSU"
       )
