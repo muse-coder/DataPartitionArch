@@ -3,12 +3,15 @@ import chisel3.{Input, UInt, _}
 import chisel3.util._
 
 class LsuCrossbarIO[T<:Data] (dType :T,addrWidth :Int) extends Bundle {
-  val dataFromBank = Input(dType)
-  val dataToBank = Output(dType)
-  val addresToBank = Output(UInt(addrWidth.W))
+  val dataFromCrossbar = Input(dType)
+  val dataInValid = Input(Bool())
+
+  val dataToCrossbar = Output(dType)
+  val dataOutValid = Output(Bool())
+
+  val addresToCrossbar = Output(UInt(addrWidth.W))
   val bankID = Output(UInt(3.W))
   val readOrWrite = Output(UInt(1.W))
-  val dataValid = Input(Bool())
 }
 
 class LsuPeIO[T<:Data] (dType :T) extends Bundle {
@@ -45,7 +48,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNu
     UInt(log2Ceil(bankNum).W),//log2_N 3
     UInt(addrWidth.W),//d1_N 8
     UInt(1.W),//storeSel 1  bit1 from load  bit0 from Pe
-    UInt(1.W),//access  store 1 or load 0
+    UInt(1.W),// mode  store 1 or load 0
   )))
   val bi = configVec(0)
   val bj = configVec(1)
@@ -54,12 +57,12 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNu
   val log2_N = configVec(4)
   val d1_N = configVec(5)
   val storeSel = configVec(6)
-  val access = configVec(7)
+  val  mode = configVec(7)
 
 
 
   val en = config_io.en
-  lsu_crossbar_io.readOrWrite := access
+  lsu_crossbar_io.readOrWrite :=  mode
   when (en ===1.U){
     LSU_configReg := config_io.bus
   }.otherwise{
@@ -67,27 +70,34 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNu
   }
 
   val LDR = RegInit(dType,0.U)
-  val LDR_Valid = RegNext(lsu_crossbar_io.dataValid)
-  when(lsu_crossbar_io.dataValid===true.B){
-    LDR := lsu_crossbar_io.dataFromBank
+  val LDR_Valid = RegNext(lsu_crossbar_io.dataInValid)
+  when(lsu_crossbar_io.dataInValid===true.B){
+    LDR := lsu_crossbar_io.dataFromCrossbar
   }.otherwise{
     LDR := LDR
   }
 
   val STR = RegInit(dType,0.U)
-
+  val STRValid = RegInit(false.B)
   when (storeSel===1.U){
     STR := LDR
   }.otherwise{
     STR := lsu_pe_io.dataFromPE
   }
+
+  when(mode===true.B){
+    STRValid := true.B
+  }.otherwise{
+    STRValid := STRValid
+  }//store mode
+  lsu_crossbar_io.dataOutValid := STRValid
   val Fifo = Module(new Custom_Fifo(gen = dType,depth = 16))
   Fifo.io.enq.bits := LDR
   Fifo.io.enq.valid:= LDR_Valid
   Fifo.io.deq.ready:= lsu_pe_io.readFifo
   lsu_pe_io.dataToPE := Fifo.io.deq.bits
   lsu_pe_io.valid := Fifo.io.deq.valid
-  lsu_crossbar_io.dataToBank := STR
+  lsu_crossbar_io.dataToCrossbar := STR
 
 
   val AG_u = Module(new AG(addrWidth = addrWidth,countDepth = countDepth, bankNum = bankNum ))
@@ -100,7 +110,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNu
   AG_u.io.log2_N := log2_N
   AG_u.io.d1_N:=d1_N
   lsu_crossbar_io.bankID := AG_u.io.bankID
-  lsu_crossbar_io.addresToBank := AG_u.io.offset
+  lsu_crossbar_io.addresToCrossbar := AG_u.io.offset
 //  PrintReg()
   PrintFifo()
  def PrintConfig(): Unit = {
@@ -114,14 +124,14 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=35,bankNu
    printf(p"log2_N : ${Binary(log2_N)}\n")
    printf(p"d1_N : ${Binary(d1_N)}\n")
    printf(p"storeSel : ${Binary(storeSel)}\n")
-   printf(p"access : ${Binary(access)}\n")
+   printf(p" mode : ${Binary( mode)}\n")
  }
 
   def PrintReg(): Unit = {
     printf(p"LDR : ${(LDR.asUInt)}\n")
     printf(p"STR : ${(STR.asUInt)}\n")
-    printf(p"bank : ${lsu_crossbar_io.dataFromBank}\n")
-    printf(p"bank valid : ${lsu_crossbar_io.dataValid}\n")
+    printf(p"bank : ${lsu_crossbar_io.dataFromCrossbar}\n")
+    printf(p"bank valid : ${lsu_crossbar_io.dataInValid}\n")
     printf(p"Pe data: ${lsu_pe_io.dataFromPE}\n")
      }
 

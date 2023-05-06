@@ -27,8 +27,8 @@ class LSU_test extends AnyFlatSpec with ChiselScalatestTester {
     test(new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=35,bankNum=8,countDepth=16)) { dut =>
 //      val dataFromBank = randomNum.nextInt(100)+1
 //      ************************init**********************
-      dut.lsu_crossbar_io.dataFromBank.poke(randomNum.nextInt(100).U)
-      dut.lsu_crossbar_io.dataValid.poke(true.B)
+      dut.lsu_crossbar_io.dataFromCrossbar.poke(randomNum.nextInt(100).U)
+      dut.lsu_crossbar_io.dataInValid.poke(true.B)
 //      val randomNum = scala.util.Random
       val bi = (randomNum.nextInt(pow(2, 7).toInt), 8, "bi")
       val bj = (randomNum.nextInt(pow(2, 7).toInt), 8, "bj")
@@ -58,7 +58,7 @@ class LSU_test extends AnyFlatSpec with ChiselScalatestTester {
       for (i<-0 until 50){
         dut.lsu_pe_io.dataFromPE.poke(randomNum.nextInt(100).U)
 
-        dut.lsu_crossbar_io.dataFromBank.poke((dataFromBank+i).U)
+        dut.lsu_crossbar_io.dataFromCrossbar.poke((dataFromBank+i).U)
         if(i<10){
          storeSel = (1, 1, "storeSel")
           access = ( 0 , 1, "access")
@@ -70,7 +70,7 @@ class LSU_test extends AnyFlatSpec with ChiselScalatestTester {
         }
         if (i>20) {
           dut.lsu_pe_io.readFifo.poke(true.B)
-          dut.lsu_crossbar_io.dataValid.poke(false.B)
+          dut.lsu_crossbar_io.dataInValid.poke(false.B)
           //
         }
         seq_u = Seq(bi, bj, STB, N, log2_N, d1_N, storeSel, access)
