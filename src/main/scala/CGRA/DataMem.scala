@@ -36,13 +36,13 @@ class DataMem [T<:Data] (dataWidth:Int,addrWidth:Int)extends Module {
 
   external_io.external_data_out := MuxLookup(external_output_sel, 0.U, Array(
     0.U -> bankCrossbar_io(0).dataFromBank,
-    1.U -> bankCrossbar_io(0).dataFromBank,
-    2.U -> bankCrossbar_io(0).dataFromBank,
-    3.U -> bankCrossbar_io(0).dataFromBank,
-    4.U -> bankCrossbar_io(0).dataFromBank,
-    5.U -> bankCrossbar_io(0).dataFromBank,
-    6.U -> bankCrossbar_io(0).dataFromBank,
-    7.U -> bankCrossbar_io(0).dataFromBank,
+    1.U -> bankCrossbar_io(1).dataFromBank,
+    2.U -> bankCrossbar_io(2).dataFromBank,
+    3.U -> bankCrossbar_io(3).dataFromBank,
+    4.U -> bankCrossbar_io(4).dataFromBank,
+    5.U -> bankCrossbar_io(5).dataFromBank,
+    6.U -> bankCrossbar_io(6).dataFromBank,
+    7.U -> bankCrossbar_io(7).dataFromBank,
   ))
 
 }
