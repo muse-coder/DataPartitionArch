@@ -15,8 +15,8 @@ class DataMem [T<:Data] (dataWidth:Int,addrWidth:Int)extends Module {
   val data_to_bank = Wire(Vec(8,UInt(dataWidth.W)))
 
   val depth = pow(2, addrWidth).toInt
-  val Srams = List.fill(8)(SyncReadMem(depth, UInt(32.W)))
-
+//  val Srams = List.fill(8)(SyncReadMem(depth, UInt(32.W)))
+  val Srams = List.fill(8)(Module( new (Ram_256_words)))
   val readValidReg = Reg(Vec(8,Bool()))
 //  Srams(1).write()
   for (i <- 0 until 8){
@@ -26,10 +26,19 @@ class DataMem [T<:Data] (dataWidth:Int,addrWidth:Int)extends Module {
     }.otherwise{
       data_to_bank(i) := external_io.external_data_in
     }
-    when(bankCrossbar_io(i).mode===true.B && bankCrossbar_io(i).dataOutValid===true.B){
-      Srams(i).write(bankCrossbar_io(i).addressToBank,data_to_bank(i))
-    }
-    bankCrossbar_io(i).dataFromBank := Srams(i).read(bankCrossbar_io(i).addressToBank)
+//    when(bankCrossbar_io(i).mode===true.B && bankCrossbar_io(i).dataOutValid===true.B){
+//      Srams(i).write(bankCrossbar_io(i).addressToBank,data_to_bank(i))
+//    }
+    Srams(i).io.clk0 := clock
+    Srams(i).io.clk1 := clock
+    Srams(i).io.csb0 := (bankCrossbar_io(i).mode & bankCrossbar_io(i).dataOutValid)
+    Srams(i).io.addr0 := bankCrossbar_io(i).addressToBank
+    Srams(i).io.addr1 := bankCrossbar_io(i).addressToBank
+    Srams(i).io.csb1 := ~(bankCrossbar_io(i).mode)
+    Srams(i).io.din0 := data_to_bank(i)
+//    bankCrossbar_io(i).dataFromBank := Srams(i).read(bankCrossbar_io(i).addressToBank)
+    bankCrossbar_io(i).dataFromBank := Srams(i).io.dout1
+
     readValidReg(i) := ~(bankCrossbar_io(i).mode)
     bankCrossbar_io(i).dataInValid := readValidReg(i)
   }
@@ -53,7 +62,7 @@ object DataMem_u extends App {
   // These lines generate the Verilog output
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new DataMem(dataWidth = 32,addrWidth = 10) ,
+      new DataMem(dataWidth = 32,addrWidth = 8) ,
       Array(
         "--target-dir", "output/"+"DataMem"
       )
