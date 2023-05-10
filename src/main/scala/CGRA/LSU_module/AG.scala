@@ -1,20 +1,47 @@
 package CGRA.LSU_module
+import CGRA.{BAGU, SAGU}
 import chisel3._
 import chisel3.util._
 class AG (addrWidth:Int=8,countDepth:Int=16, bankNum:Int=8)extends Module {
   val io = IO(new Bundle() {
-    val j = Input(UInt(log2Ceil(countDepth).W))
-    val i = Input(UInt(log2Ceil(countDepth).W))
-    val bj = Input(UInt(addrWidth.W))
-    val bi = Input(UInt(addrWidth.W))
-    val STB = Input(UInt(log2Ceil(bankNum).W))
+    val S1 = Input(UInt(log2Ceil(countDepth).W))
+    val S2 = Input(UInt(log2Ceil(countDepth).W))
+    val SA = Input(UInt(addrWidth.W))
+    val maxj = Input(Bool())
     val N = Input(UInt(log2Ceil(bankNum).W))
-    val log2_N =Input(UInt(log2Ceil(bankNum).W))
-    val d1_N = Input(UInt(addrWidth.W))
-    val offset = Output(UInt(addrWidth.W))
+    val log2_B =Input(UInt(log2Ceil(bankNum).W))
+    val B = Input(UInt(log2Ceil(bankNum).W))
+    val log2_N_B= Input(UInt(log2Ceil(bankNum).W))
     val bankID = Output(UInt(log2Ceil(bankNum).W))
+    val offset = Output(UInt(addrWidth.W))
   })
-  io.offset := (io.i + io.bi) * io.d1_N  + ( (io.j + io.bj )  >> io.log2_N)
-  io.bankID := (io.j + io.i ) &  io.N  + io.STB
+  val SAGU_u = Module(new SAGU(addrWidth = addrWidth, countDepth = countDepth))
+  val BAGU_u = Module(new BAGU(addrWidth = addrWidth, bankNum = bankNum))
 
+  SAGU_u.io.S1 := io.S1
+  SAGU_u.io.S2 := io.S2
+  SAGU_u.io.SA := io.SA
+  SAGU_u.io.maxj := io.maxj
+
+  BAGU_u.io.StreamAddress := SAGU_u.io.StreamAddress
+  BAGU_u.io.N := io.N
+  BAGU_u.io.log2_B := io.log2_B
+  BAGU_u.io.B := io.B
+  BAGU_u.io.log2_N_B := io.log2_N_B
+
+  io.bankID := BAGU_u.io.bankID
+  io.offset := BAGU_u.io.offset
+
+}
+
+object AG_u extends App {
+  // These lines generate the Verilog output
+  println(
+    new (chisel3.stage.ChiselStage).emitVerilog(
+      new AG(addrWidth = 8,bankNum = 8,countDepth = 16) ,
+      Array(
+        "--target-dir", "output/"+"AG"
+      )
+    )
+  )
 }

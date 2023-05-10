@@ -73,8 +73,10 @@ class IVG (countDepth:Int=16)extends Module {
     Count_i.io.en := en_i
     Count_i.io.rst := rst_i
 
-    ivg_lsu_io.j := Count_j.io.res
-    ivg_lsu_io.i := Count_i.io.res
+//    ivg_lsu_io.j := Count_j.io.res
+//    ivg_lsu_io.i := Count_i.io.res
+
+    ivg_lsu_io.maxj := en_i
 
     printf(p"Print during simulation: Count_j.io.inc is ${Count_j.io.inc}\n")
     printf(p"Print during simulation: CCount_j.io.en is ${Count_j.io.en} \n")

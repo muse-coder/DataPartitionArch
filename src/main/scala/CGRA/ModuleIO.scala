@@ -1,6 +1,25 @@
 package CGRA
 import chisel3._
 import chisel3.util._
+
+class SaguIO(addrWidth:Int,countDepth:Int) extends Bundle{
+  val S1 = Input(UInt(log2Ceil(countDepth).W))
+  val S2 = Input(UInt(log2Ceil(countDepth).W))
+  val SA = Input(UInt(addrWidth.W))
+  val maxj = Input(Bool())
+  val  StreamAddress= Output(UInt(addrWidth.W))
+
+}
+class BaguIO(addrWidth:Int,bankNum:Int) extends Bundle{
+  val  StreamAddress= Input(UInt(addrWidth.W))
+  val N = Input(UInt(log2Ceil(bankNum).W))
+  val log2_B = Input(UInt(log2Ceil(bankNum).W))
+  val B = Input(UInt(log2Ceil(bankNum).W))
+  val log2_N_B = Input(UInt(log2Ceil(bankNum).W))
+  val bankID = Output(UInt(log2Ceil(bankNum).W))
+  val offset = Output(UInt(addrWidth.W))
+}
+
 class  ExternalIO (dataWidth:Int,configWidth:Int) extends Bundle {
   val external_data_in = Input(UInt(dataWidth.W))
   val external_control = Input(UInt(configWidth.W))
@@ -37,8 +56,9 @@ class LsuPeIO[T<:Data] (dType :T) extends Bundle {
 }
 
 class LsuIvgIO (countDepth:Int=16) extends Bundle {
-  val i = Input(UInt(log2Ceil(countDepth).W))
-  val j = Input(UInt(log2Ceil(countDepth).W))
+//  val i = Input(UInt(log2Ceil(countDepth).W))
+//  val j = Input(UInt(log2Ceil(countDepth).W))
+  val maxj = Input(Bool())
 }
 
 class IvgConfigIO(countDepth:Int) extends Bundle{
