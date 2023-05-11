@@ -15,3 +15,8 @@
 # /target/scalar
 /target\scala-2.12\classes
 /exp/
+/target/*
+/target/scala-2.12/classes
+/~$三种方法地址计算结构.pptx
+/三种方法地址计算结构.pptx
+/exp.zip

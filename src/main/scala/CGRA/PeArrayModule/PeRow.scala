@@ -16,7 +16,7 @@ class PeRow[T<: Data] (dType :T,hasSouth:Boolean,column:Int=4,instWidth:Int=13) 
     val row_down_out = if (hasSouth) Some(Output(Vec(column, dType))) else None
 
   })
-  val PEs = Array.fill(column-1){Module (new Pe(dType = dType,hasSouth=hasSouth,hasEast = true ,instWidth=13))}
+  val PEs = Array.fill(column-1){Module (new Pe(dType = dType,hasSouth=hasSouth,hasEast = true ,instWidth=instWidth))}
   val PeRight=Module (new Pe(dType = dType,hasSouth=hasSouth,hasEast = false ,instWidth=13))
 
   for (i <- 0 until column-1) {
