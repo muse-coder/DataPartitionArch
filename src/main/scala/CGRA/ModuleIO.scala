@@ -15,7 +15,7 @@ class BaguIO(addrWidth:Int,bankNum:Int) extends Bundle{
   val N = Input(UInt(log2Ceil(bankNum).W))
   val log2_B = Input(UInt(log2Ceil(bankNum).W))
   val B = Input(UInt(log2Ceil(bankNum).W))
-  val log2_N_B = Input(UInt(log2Ceil(bankNum).W))
+  val log2_N_B = Input(UInt(log2Ceil(bankNum*bankNum).W))
   val bankID = Output(UInt(log2Ceil(bankNum).W))
   val offset = Output(UInt(addrWidth.W))
 }

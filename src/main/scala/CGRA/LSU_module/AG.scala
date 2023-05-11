@@ -11,7 +11,7 @@ class AG (addrWidth:Int=8,countDepth:Int=16, bankNum:Int=8)extends Module {
     val N = Input(UInt(log2Ceil(bankNum).W))
     val log2_B =Input(UInt(log2Ceil(bankNum).W))
     val B = Input(UInt(log2Ceil(bankNum).W))
-    val log2_N_B= Input(UInt(log2Ceil(bankNum).W))
+    val log2_N_B= Input(UInt(log2Ceil(bankNum*bankNum).W))
     val bankID = Output(UInt(log2Ceil(bankNum).W))
     val offset = Output(UInt(addrWidth.W))
   })

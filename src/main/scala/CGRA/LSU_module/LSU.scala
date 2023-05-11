@@ -4,14 +4,14 @@ import chisel3.util._
 import CGRA._
 
 
-class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=31,bankNum:Int=8,countDepth:Int=16) extends Module {
+class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=34,bankNum:Int=8,countDepth:Int=16) extends Module {
   val lsu_crossbar_io = IO(new LsuCrossbarIO(dType = dType, addrWidth = addrWidth))
   val lsu_pe_io = IO(new LsuPeIO(dType =dType ))
   val lsu_ivg_io =  IO(new LsuIvgIO(countDepth = countDepth))
   val config_io = IO(new LsuConfigIO(LSU_InstWidth=LSU_InstWidth)   )
 
 
-  assume(LSU_InstWidth == ( addrWidth*1 + 4*log2Ceil(bankNum) + 2*log2Ceil(countDepth) + 3))
+  assume(LSU_InstWidth == ( addrWidth*1 + 3*log2Ceil(bankNum)  + 1*log2Ceil(bankNum * bankNum)  + 2*log2Ceil(countDepth) + 3))
   val LSU_configReg = RegInit(UInt(LSU_InstWidth.W),0.U)
 //  LSU_configReg := io.LSU_config
   val configVec = LSU_configReg.asTypeOf(MixedVec(Seq(
@@ -21,7 +21,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=31,bankNu
     UInt(log2Ceil(bankNum).W),//N 3
     UInt(log2Ceil(bankNum).W),//log2_B 3
     UInt(log2Ceil(bankNum).W),//B 3
-    UInt(log2Ceil(bankNum).W),//log2_N_B 3
+    UInt(log2Ceil(bankNum*bankNum).W),//log2_N_B 6
     UInt(1.W),//storeSel 1  bit1 from load  bit0 from Pe
     UInt(1.W),// mode  store 1 or load 0
     Bool(),//readFifo 1
@@ -68,11 +68,12 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=31,bankNu
     STRValid := STRValid
   }//store mode
   lsu_crossbar_io.dataOutValid := STRValid
-  val Fifo = Module(new Custom_Fifo(gen = dType,depth = 16))
-  Fifo.io.enq.bits := LDR
-  Fifo.io.enq.valid:= LDR_Valid
-  Fifo.io.deq.ready:= readFifo
-  lsu_pe_io.dataToPE := Fifo.io.deq.bits
+//  val Fifo = Module(new Custom_Fifo(gen = dType,depth = 2))
+//  Fifo.io.enq.bits := LDR
+//  Fifo.io.enq.valid:= LDR_Valid
+//  Fifo.io.deq.ready:= readFifo
+//  lsu_pe_io.dataToPE := Fifo.io.deq.bits
+  lsu_pe_io.dataToPE := LDR
 //  lsu_pe_io.valid := Fifo.io.deq.valid
   lsu_crossbar_io.dataToCrossbar := STR
 
@@ -90,7 +91,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=31,bankNu
   lsu_crossbar_io.addresToCrossbar := AG_u.io.offset
 
 //  PrintReg()
-  PrintFifo()
+//  PrintFifo()
  def PrintConfig(): Unit = {
    printf(p"configBus : ${Binary(config_io.bus)}\n")
    printf(p"configEn : ${Binary(config_io.en)}\n")
@@ -113,22 +114,22 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=31,bankNu
     printf(p"Pe data: ${lsu_pe_io.dataFromPE}\n")
      }
 
-  def PrintFifo(): Unit = {
-    printf(p"Fifo Din: ${Fifo.io.enq.bits}\n")
-    printf(p"Din Valid : ${Fifo.io.enq.valid}\n")
-    printf(p"Din Ready : ${Fifo.io.enq.ready}\n")
-
-    printf(p"Fifo Dout : ${Fifo.io.deq.bits}\n")
-    printf(p"Dout valid : ${Fifo.io.deq.valid}\n")
-    printf(p"Dout ready : ${Fifo.io.deq.ready}\n")
-  }
+//  def PrintFifo(): Unit = {
+//    printf(p"Fifo Din: ${Fifo.io.enq.bits}\n")
+//    printf(p"Din Valid : ${Fifo.io.enq.valid}\n")
+//    printf(p"Din Ready : ${Fifo.io.enq.ready}\n")
+//
+//    printf(p"Fifo Dout : ${Fifo.io.deq.bits}\n")
+//    printf(p"Dout valid : ${Fifo.io.deq.valid}\n")
+//    printf(p"Dout ready : ${Fifo.io.deq.ready}\n")
+//  }
 
 }
 
 object LSU_u extends App{
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=31,bankNum=8,countDepth=16),
+      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=34,bankNum=8,countDepth=16),
       Array(
         "--target-dir","output/LSU"
       )
