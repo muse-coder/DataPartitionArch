@@ -5,7 +5,7 @@ import CGRA.LSU_module.{IVG, LSU}
 import CGRA.PeArrayModule.{PeArray, PeRow}
 import chisel3._
 import chisel3.util._
-class TopModule [T<:Data] (dataWidth:Int,LSU_InstWidth:Int=36,row:Int=4,column:Int=4,addrWidth:Int=8, PeInstWidth:Int=13,bankNum:Int=8)extends  Module {
+class DataPartition [T<:Data] (dataWidth:Int,LSU_InstWidth:Int=36,row:Int=4,column:Int=4,addrWidth:Int=8, PeInstWidth:Int=13,bankNum:Int=8)extends  Module {
   val external_io = IO(new ExternalIO(dataWidth = dataWidth,configWidth = 11))
   val IvgConfig_io = IO(new IvgConfigIO(countDepth = 16))
   val PErowConfig_io = IO(Input(Vec(row, UInt(PeInstWidth.W))))
@@ -46,9 +46,9 @@ object TopModule_u extends App {
   // These lines generate the Verilog output
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new TopModule (dataWidth=32),
+      new DataPartition (dataWidth=32),
       Array(
-        "--target-dir", "output/"+"TopModule"
+        "--target-dir", "output/"+"DataPartition"
       )
     )
   )
