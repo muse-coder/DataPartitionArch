@@ -4,10 +4,10 @@ import chisel3.util._
 import CGRA._
 
 
-class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=68,bankNum:Int=8,countDepth:Int=16,fifoDepth:Int = 8) extends Module {
+class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=68,bankNum:Int=8,fifoDepth:Int = 8) extends Module {
   val lsu_crossbar_io = IO(new LsuCrossbarIO(dType = dType, addrWidth = addrWidth))
   val lsu_pe_io = IO(new LsuPeIO(dType =dType ))
-  val lsu_ivg_io =  IO(new LsuIvgIO(countDepth = countDepth))
+  val lsu_ivg_io =  IO(new LsuIvgIO())
   val config_io = IO(new LsuConfigIO(LSU_InstWidth=LSU_InstWidth)   )
 
 
@@ -80,7 +80,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=68,bankNu
   lsu_crossbar_io.dataToCrossbar := STR
 
 
-  val AG_u = Module(new AG(addrWidth = addrWidth,countDepth = countDepth, bankNum = bankNum ))
+  val AG_u = Module(new AG(addrWidth = addrWidth, bankNum = bankNum ))
   AG_u.io.stride1 := stride1
   AG_u.io.stride0 := stride0
   AG_u.io.start1 := start1
@@ -129,7 +129,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=68,bankNu
 object LSU_u extends App{
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=68,bankNum=8,countDepth=16),
+      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=68,bankNum=8),
       Array(
         "--target-dir","output/LSU"
       )

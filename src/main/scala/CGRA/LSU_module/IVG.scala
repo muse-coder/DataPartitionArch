@@ -3,14 +3,14 @@ import CGRA.PeStructure.Pe
 import chisel3._
 import chisel3.util._
 import CGRA._
-class Count (depth:Int=16)extends Module{
+class Count (addrWidth:Int=8)extends Module{
     val io = IO(new Bundle() {
         val inc = Input(UInt(1.W))
         val rst = Input(Bool())
         val en =  Input(Bool())
-        val res = Output(UInt(log2Ceil(depth).W))
+        val res = Output(UInt(addrWidth.W))
     })
-    val cnt = RegInit(UInt(log2Ceil(depth).W),0.U)
+    val cnt = RegInit(UInt(addrWidth.W),0.U)
     when(io.en === true.B){
         when(io.rst===true.B){
             cnt := 0.U
@@ -23,20 +23,20 @@ class Count (depth:Int=16)extends Module{
     io.res := cnt
 }
 
-class IVG (countDepth:Int=16)extends Module {
-    val config_io = IO(new IvgConfigIO(countDepth= countDepth))
+class IVG (addrWidth:Int=8)extends Module {
+    val config_io = IO(new IvgConfigIO(addrWidth= addrWidth))
 
-    val ivg_lsu_io = IO(Flipped(new LsuIvgIO(countDepth = countDepth)))
+    val ivg_lsu_io = IO(Flipped(new LsuIvgIO()))
 
-    val configReg = RegInit(UInt((2*log2Ceil(countDepth)).W),0.U)
+    val configReg = RegInit(UInt((2*(addrWidth)).W),0.U)
     when (config_io.en===1.U){
         configReg := Cat(config_io.max_j,config_io.max_i)
     }.otherwise{
         configReg := configReg
     }
     val configVec = configReg.asTypeOf(MixedVec(Seq(
-        UInt(log2Ceil(countDepth).W),
-        UInt(log2Ceil(countDepth).W)
+        UInt(addrWidth.W),
+        UInt(addrWidth.W)
     )))
     val max_i = configVec(0)
     val max_j = configVec(1)
@@ -48,7 +48,7 @@ class IVG (countDepth:Int=16)extends Module {
 
     en_j := true.B
 
-    val Count_j = Module(new Count(depth = countDepth))
+    val Count_j = Module(new Count(addrWidth = addrWidth))
 
     Count_j.io.inc := 1.U
     Count_j.io.en := en_j
@@ -61,7 +61,7 @@ class IVG (countDepth:Int=16)extends Module {
         en_i := false.B
     }
 
-    val Count_i = Module(new Count(depth = countDepth))
+    val Count_i = Module(new Count(addrWidth = addrWidth))
 
 
     when(Count_i.io.res >= max_i) {
@@ -90,7 +90,7 @@ object IVG_u extends App {
     // These lines generate the Verilog output
     println(
         new (chisel3.stage.ChiselStage).emitVerilog(
-            new IVG (countDepth=16 ),
+            new IVG (addrWidth=8 ),
             Array(
                 "--target-dir", "output/"+"IVG"
             )

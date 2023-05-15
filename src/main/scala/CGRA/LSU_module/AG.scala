@@ -2,16 +2,16 @@ package CGRA.LSU_module
 import CGRA.LsuAGIO
 import chisel3._
 import chisel3.util._
-class AccCounter (depth:Int=16,addrWidth:Int)extends Module{
+class AccCounter (addrWidth:Int)extends Module{
   val io = IO(new Bundle() {
-    val inc = Input(UInt(log2Ceil(addrWidth).W))
+    val inc = Input(UInt((addrWidth).W))
     val rst = Input(Bool())
     val en =  Input(Bool())
-    val res = Output(UInt(log2Ceil(depth).W))
+    val res = Output(UInt(addrWidth.W))
   })
 
   //  reset := io.rst
-  val cnt = RegInit(UInt(log2Ceil(depth).W),0.U)
+  val cnt = RegInit(UInt(addrWidth.W),0.U)
   when(io.en === true.B){
     when(io.rst=== true.B){
       cnt := 0.U
@@ -21,17 +21,17 @@ class AccCounter (depth:Int=16,addrWidth:Int)extends Module{
   }
   io.res := cnt
 }
-class AG (addrWidth:Int=8,countDepth:Int=16, bankNum:Int=16)extends Module {
+class AG (addrWidth:Int=8, bankNum:Int=16)extends Module {
   val io = IO(new LsuAGIO(addrWidth = addrWidth , bankNum = bankNum))
 
-  val AccCounter1 = Module(new AccCounter(depth = countDepth, addrWidth = addrWidth))
+  val AccCounter1 = Module(new AccCounter(addrWidth = addrWidth))
   AccCounter1.io.inc := io.stride1
   AccCounter1.io.en := io.en
   val x1 = io.start1 + AccCounter1.io.res
   val Acc1Max = Mux(x1 === io.max1 , true.B,false.B)
   AccCounter1.io.rst := Acc1Max
 
-  val AccCounter0 = Module(new AccCounter(depth = countDepth, addrWidth = addrWidth))
+  val AccCounter0 = Module(new AccCounter(addrWidth = addrWidth))
   AccCounter0.io.inc := io.stride0
   AccCounter0.io.en := Acc1Max
   val x0 = io.start0 + AccCounter0.io.res
@@ -60,7 +60,7 @@ class AG (addrWidth:Int=8,countDepth:Int=16, bankNum:Int=16)extends Module {
 object AccCounter extends App{
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new AccCounter (depth=16,addrWidth=8),
+      new AccCounter (addrWidth=8),
       Array(
         "--target-dir","output/AG"
       )
