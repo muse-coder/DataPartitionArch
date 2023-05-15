@@ -55,10 +55,9 @@ class LsuPeIO[T<:Data] (dType :T) extends Bundle {
 //  val valid = Output(Bool())
 }
 
-class LsuIvgIO (countDepth:Int=16) extends Bundle {
-//  val i = Input(UInt(log2Ceil(countDepth).W))
-//  val j = Input(UInt(log2Ceil(countDepth).W))
-  val maxj = Input(Bool())
+class LsuIvgIO (addrWidth:Int=8) extends Bundle {
+  val i = Input(UInt(addrWidth.W))
+  val j = Input(UInt(addrWidth.W))
 }
 
 class IvgConfigIO(addrWidth:Int) extends Bundle{
