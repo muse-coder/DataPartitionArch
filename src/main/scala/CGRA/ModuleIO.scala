@@ -2,9 +2,9 @@ package CGRA
 import chisel3._
 import chisel3.util._
 
-class SaguIO(addrWidth:Int,countDepth:Int) extends Bundle{
-  val S1 = Input(UInt(log2Ceil(countDepth).W))
-  val S2 = Input(UInt(log2Ceil(countDepth).W))
+class SaguIO(addrWidth:Int) extends Bundle{
+  val S1 = Input(UInt(addrWidth.W))
+  val S2 = Input(UInt(addrWidth.W))
   val SA = Input(UInt(addrWidth.W))
   val maxj = Input(Bool())
   val  StreamAddress= Output(UInt(addrWidth.W))
@@ -61,9 +61,9 @@ class LsuIvgIO (countDepth:Int=16) extends Bundle {
   val maxj = Input(Bool())
 }
 
-class IvgConfigIO(countDepth:Int) extends Bundle{
-  val max_i = Input(UInt(log2Ceil(countDepth).W))
-  val max_j = Input(UInt(log2Ceil(countDepth).W))
+class IvgConfigIO(addrWidth:Int) extends Bundle{
+  val max_i = Input(UInt((addrWidth).W))
+  val max_j = Input(UInt((addrWidth).W))
   val en = Input(UInt(1.W))
 }
 

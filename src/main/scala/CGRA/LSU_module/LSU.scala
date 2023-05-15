@@ -4,19 +4,19 @@ import chisel3.util._
 import CGRA._
 
 
-class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=34,bankNum:Int=8,countDepth:Int=16) extends Module {
+class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=42,bankNum:Int=8) extends Module {
   val lsu_crossbar_io = IO(new LsuCrossbarIO(dType = dType, addrWidth = addrWidth))
   val lsu_pe_io = IO(new LsuPeIO(dType =dType ))
-  val lsu_ivg_io =  IO(new LsuIvgIO(countDepth = countDepth))
+  val lsu_ivg_io =  IO(new LsuIvgIO())
   val config_io = IO(new LsuConfigIO(LSU_InstWidth=LSU_InstWidth)   )
 
 
-  assume(LSU_InstWidth == ( addrWidth*1 + 3*log2Ceil(bankNum)  + 1*log2Ceil(bankNum * bankNum)  + 2*log2Ceil(countDepth) + 3))
+  assume(LSU_InstWidth == ( addrWidth*3 + 3*log2Ceil(bankNum)  + 1*log2Ceil(bankNum * bankNum)  + 3))
   val LSU_configReg = RegInit(UInt(LSU_InstWidth.W),0.U)
 //  LSU_configReg := io.LSU_config
   val configVec = LSU_configReg.asTypeOf(MixedVec(Seq(
-    UInt(log2Ceil(countDepth).W), //S1 4
-    UInt(log2Ceil(countDepth).W), //S2 4
+    UInt(addrWidth.W), //S1 4
+    UInt(addrWidth.W), //S2 4
     UInt(addrWidth.W), //SA 8
     UInt(log2Ceil(bankNum).W),//N 3
     UInt(log2Ceil(bankNum).W),//log2_B 3
@@ -62,11 +62,8 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=34,bankNu
     STR := lsu_pe_io.dataFromPE
   }
 
-  when(mode===true.B){
-    STRValid := true.B
-  }.otherwise{
-    STRValid := STRValid
-  }//store mode
+  STRValid := mode
+
   lsu_crossbar_io.dataOutValid := STRValid
 //  val Fifo = Module(new Custom_Fifo(gen = dType,depth = 2))
 //  Fifo.io.enq.bits := LDR
@@ -78,7 +75,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=34,bankNu
   lsu_crossbar_io.dataToCrossbar := STR
 
 
-  val AG_u = Module(new AG(addrWidth = addrWidth,countDepth = countDepth, bankNum = bankNum ))
+  val AG_u = Module(new AG(addrWidth = addrWidth, bankNum = bankNum ))
   AG_u.io.S1  := S1
   AG_u.io.S2  := S2
   AG_u.io.SA  := SA
@@ -129,7 +126,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=34,bankNu
 object LSU_u extends App{
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=34,bankNum=8,countDepth=16),
+      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=42,bankNum=8),
       Array(
         "--target-dir","output/LSU"
       )

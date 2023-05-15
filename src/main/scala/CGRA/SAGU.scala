@@ -2,8 +2,8 @@ package CGRA
 import chisel3._
 import chisel3.util._
 
-class SAGU (addrWidth:Int ,countDepth:Int)extends Module {
-  val io = IO(new SaguIO(addrWidth = addrWidth,countDepth = countDepth))
+class SAGU (addrWidth:Int )extends Module {
+  val io = IO(new SaguIO(addrWidth = addrWidth ))
   val inc = Mux(io.maxj,io.S1,io.S2)
   val AccAddress = RegInit(UInt(addrWidth.W),0.U)
   AccAddress := AccAddress + inc
