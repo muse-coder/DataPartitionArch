@@ -4,42 +4,51 @@ import chisel3.util._
 import CGRA._
 
 
-class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=67,bankNum:Int=8) extends Module {
+class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=102,bankNum:Int=8) extends Module {
   val lsu_crossbar_io = IO(new LsuCrossbarIO(dType = dType, addrWidth = addrWidth))
   val lsu_pe_io = IO(new LsuPeIO(dType =dType ))
-  val lsu_ivg_io =  IO(new LsuIvgIO(addrWidth = addrWidth))
+  val lsu_ivg_io =  IO(new LsuIvgIO())
   val config_io = IO(new LsuConfigIO(LSU_InstWidth=LSU_InstWidth)  )
 
 
-  assume(LSU_InstWidth == ( addrWidth*8 + 3))
+  assume(LSU_InstWidth == ( addrWidth*12 + 3 +log2Ceil(bankNum)))
   val LSU_configReg = RegInit(UInt(LSU_InstWidth.W),0.U)
 //  LSU_configReg := io.LSU_config
   val configVec = LSU_configReg.asTypeOf(MixedVec(Seq(
-    UInt(addrWidth.W), //bi 4
-    UInt(addrWidth.W), //bj 4
-    UInt(addrWidth.W), //B 8
-    UInt(addrWidth.W),//d1/(N*B)
-    UInt(addrWidth.W),//log2_B
-    UInt(addrWidth.W), //log2_(N*B)
-//    UInt(log2Ceil(bankNum).W), //N
+    UInt(addrWidth.W), //stride1
+    UInt(addrWidth.W), //stride0
+    UInt(addrWidth.W),//start1
+    UInt(addrWidth.W), //start0
+    UInt(addrWidth.W), //max1
+    UInt(addrWidth.W), //max0
+    UInt(log2Ceil(bankNum).W), // N
+    UInt(addrWidth.W),//log2_B// N
+    UInt(addrWidth.W), //d1_N_B_B
     UInt(addrWidth.W),//alpha0
     UInt(addrWidth.W),//alpha1
+    UInt(addrWidth.W),//B
+    UInt(addrWidth.W), //log2_N_B// N
+
     UInt(1.W),//storeSel 1  bit1 from load  bit0 from Pe
     UInt(1.W),// mode  store 1 or load 0
     Bool(),//readFifo 1
   )))
-  val bi = configVec(0)
-  val bj = configVec(1)
-  val B = configVec(2)
-  val d1_N_B_B = configVec(3)
-  val log2_B = configVec(4)
-  val log2_N_B = configVec(5)
-//  val N = configVec(6)
-  val alpha0 = configVec(6)
-  val alpha1 = configVec(7)
-  val storeSel = configVec(8)
-  val  mode = configVec(9)
-  val readFifo = configVec(10)
+val stride1 = configVec(0)
+  val stride0 = configVec(1)
+  val start1 = configVec(2)
+  val start0 = configVec(3)
+  val max1 = configVec(4)
+  val max0 = configVec(5)
+  val N = configVec(6)
+  val log2_B = configVec(7)
+  val d1_N_B_B = configVec(8)
+  val alpha0 = configVec(9)
+  val alpha1 = configVec(10)
+  val B = configVec(11)
+  val log2_N_B = configVec(12)
+  val storeSel = configVec(13)
+  val  mode = configVec(14)
+  val readFifo = configVec(15)
 
 
   val en = config_io.en
@@ -80,16 +89,20 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=67,bankNu
 
 
   val AG_u = Module(new AG(addrWidth = addrWidth, bankNum = bankNum ))
-  AG_u.io.i  := lsu_ivg_io.i
-  AG_u.io.j  := lsu_ivg_io.j
-  AG_u.io.bi  := bi
-  AG_u.io.bj  := bj
-  AG_u.io.B   := B
-  AG_u.io.d1_N_B_B  := d1_N_B_B
+  AG_u.io.en   := lsu_ivg_io.maxj
+  AG_u.io.stride1 := stride1
+  AG_u.io.stride0 := stride0
+  AG_u.io.start1 := start1
+  AG_u.io.start0 := start0
+  AG_u.io.max1 := max1
+  AG_u.io.max0 := max0
+  AG_u.io.N := N
   AG_u.io.log2_B   := log2_B
-  AG_u.io.log2_N_B  := log2_N_B
-  AG_u.io.alpha1 := alpha1
-  AG_u.io.alpha0 := alpha0
+  AG_u.io.d1_N_B_B  := d1_N_B_B
+  AG_u.io.alpha0   := alpha0
+  AG_u.io.alpha1  := alpha1
+  AG_u.io.B := B
+  AG_u.io.log2_N_B := log2_N_B
   lsu_crossbar_io.bankID := AG_u.io.bankID
   lsu_crossbar_io.addresToCrossbar := AG_u.io.offset
 
@@ -132,7 +145,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=67,bankNu
 object LSU_u extends App{
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=67,bankNum=8),
+      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=102,bankNum=8),
       Array(
         "--target-dir","output/LSU"
       )

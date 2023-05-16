@@ -1,28 +1,44 @@
 package CGRA.LSU_module
-import CGRA.{BAGU, SAGU}
+import CGRA.{BAGU, LsuAGIO, SAGU}
 import chisel3._
 import chisel3.util._
-class AG (addrWidth:Int=8, bankNum:Int=8)extends Module {
+class AccCounter (addrWidth:Int)extends Module{
   val io = IO(new Bundle() {
-    val i = Input(UInt(addrWidth.W))
-    val j = Input(UInt(addrWidth.W))
-    val bi = Input(UInt(addrWidth.W))
-    val bj = Input(UInt(addrWidth.W))
-    val B = Input(UInt(addrWidth.W))
-    val d1_N_B_B = Input(UInt(addrWidth.W))
-    val log2_B = Input(UInt(addrWidth.W))
-    val log2_N_B = Input(UInt(addrWidth.W))
-//    val N = Input(UInt(log2Ceil(bankNum).W))
-    val alpha0 = Input(UInt(addrWidth.W))
-    val alpha1 = Input(UInt(addrWidth.W))
-    val bankID = Output(UInt(log2Ceil(bankNum).W))
-    val offset = Output(UInt(addrWidth.W))
+    val inc = Input(UInt((addrWidth).W))
+    val rst = Input(Bool())
+    val en =  Input(Bool())
+    val res = Output(UInt(addrWidth.W))
   })
-    val x0 = io.bi + io.i
-    val x1 = io.bj + io.j
+  //  reset := io.rst
+  val cnt = RegInit(UInt(addrWidth.W),0.U)
+  when(io.en === true.B){
+    when(io.rst=== true.B){
+      cnt := 0.U
+    }.otherwise{
+      cnt := cnt + io.inc
+    }
+  }
+  io.res := cnt
+}
+
+class AG (addrWidth:Int=8, bankNum:Int=8)extends Module {
+  val io = IO(new LsuAGIO(addrWidth = addrWidth , bankNum = bankNum))
+  val AccCounter1 = Module(new AccCounter(addrWidth = addrWidth))
+  AccCounter1.io.inc := io.stride1
+  AccCounter1.io.en := io.en
+  val x1 = io.start1 + AccCounter1.io.res
+  val Acc1Max = Mux(x1 === io.max1 , true.B,false.B)
+  AccCounter1.io.rst := Acc1Max
+  val AccCounter0 = Module(new AccCounter(addrWidth = addrWidth))
+  AccCounter0.io.inc := io.stride0
+  AccCounter0.io.en := Acc1Max
+  val x0 = io.start0 + AccCounter0.io.res
+  val Acc0Max = Mux(x0 === io.max0 , true.B,false.B)
+  AccCounter0.io.rst := Acc0Max
+
     val alpha_x1 =  io.alpha1 * x1
     val alpha_x0 =  io.alpha0 * x0
-    io.bankID := (alpha_x1 + alpha_x0) >> io.log2_B
+    io.bankID := ((alpha_x1 + alpha_x0) >> io.log2_B) & io.N
 
     val offset0 = x0 * io.d1_N_B_B
     val offset1 = (x1 >> io.log2_N_B) << io.log2_B

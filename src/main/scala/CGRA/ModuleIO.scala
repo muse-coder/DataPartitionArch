@@ -55,9 +55,31 @@ class LsuPeIO[T<:Data] (dType :T) extends Bundle {
 //  val valid = Output(Bool())
 }
 
-class LsuIvgIO (addrWidth:Int=8) extends Bundle {
-  val i = Input(UInt(addrWidth.W))
-  val j = Input(UInt(addrWidth.W))
+
+class LsuAGIO[T<:Data] (addrWidth:Int,bankNum:Int) extends Bundle {
+  val stride1 = Input(UInt(addrWidth.W))
+  val stride0 = Input(UInt(addrWidth.W))
+  val start1 = Input(UInt(addrWidth.W))
+  val start0 = Input(UInt(addrWidth.W))
+  val max1 = Input(UInt(addrWidth.W))
+  val max0 = Input(UInt(addrWidth.W))
+  val en = Input(Bool())
+  val N = Input(UInt(log2Ceil(bankNum).W))
+  val log2_B = Input(UInt((addrWidth).W))
+  val d1_N_B_B = Input(UInt(addrWidth.W))
+  val alpha0 = Input(UInt(addrWidth.W))
+  val alpha1 = Input(UInt(addrWidth.W))
+  val B = Input(UInt(addrWidth.W))
+  val log2_N_B = Input(UInt(addrWidth.W))
+  val offset = Output(UInt(addrWidth.W))
+  val bankID = Output(UInt(log2Ceil(bankNum).W))
+
+}
+
+class LsuIvgIO () extends Bundle {
+//  val i = Input(UInt(log2Ceil(countDepth).W))
+//  val j = Input(UInt(log2Ceil(countDepth).W))
+  val maxj = Input(Bool())
 }
 
 class IvgConfigIO(addrWidth:Int) extends Bundle{
