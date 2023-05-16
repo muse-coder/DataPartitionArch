@@ -4,14 +4,14 @@ import chisel3.util._
 import CGRA._
 
 
-class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=68,bankNum:Int=8,fifoDepth:Int = 8) extends Module {
+class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=65,bankNum:Int=8,fifoDepth:Int = 8) extends Module {
   val lsu_crossbar_io = IO(new LsuCrossbarIO(dType = dType, addrWidth = addrWidth))
   val lsu_pe_io = IO(new LsuPeIO(dType =dType ))
   val lsu_ivg_io =  IO(new LsuIvgIO())
   val config_io = IO(new LsuConfigIO(LSU_InstWidth=LSU_InstWidth)   )
 
 
-  assume(LSU_InstWidth == ( addrWidth * 7 + 2*log2Ceil(bankNum) + 3 + log2Ceil(fifoDepth)))
+  assume(LSU_InstWidth == ( addrWidth * 7 + 2*log2Ceil(bankNum) + 3 ))
   val LSU_configReg = RegInit(UInt(LSU_InstWidth.W),0.U)
 
   val configVec = LSU_configReg.asTypeOf(MixedVec(Seq(
@@ -26,8 +26,8 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=68,bankNu
     UInt(log2Ceil(bankNum).W),//log2_N 3
     UInt(1.W),//storeSel 1  bit1 from load  bit0 from Pe
     UInt(1.W),// mode  write 1 or read 0
-    Bool(),//readFifo 1
-    UInt(log2Ceil(fifoDepth).W) //fifoDepth 3
+    Bool()//readFifo 1
+//    UInt(log2Ceil(fifoDepth).W) //fifoDepth 3
   )))
   val stride1 = configVec(0)
   val stride0 = configVec(1)
@@ -41,7 +41,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=68,bankNu
   val storeSel = configVec(9)
   val  mode = configVec(10)
   val readFifo = configVec(11)
-  val scaledDepth = configVec(12)
+//  val scaledDepth = configVec(12)
 
   val en = config_io.en
   lsu_crossbar_io.readOrWrite :=  mode
@@ -70,12 +70,13 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=68,bankNu
   STRValid := mode
 
   lsu_crossbar_io.dataOutValid := STRValid
-  val Fifo = Module(new ScaledFifo(gen = dType,depth = 8))
-  Fifo.io.enq.bits := LDR
-  Fifo.io.enq.valid:= LDR_Valid
-  Fifo.io.deq.ready:= readFifo
-  Fifo.scaledDepth := scaledDepth
-  lsu_pe_io.dataToPE := Fifo.io.deq.bits
+//  val Fifo = Module(new ScaledFifo(gen = dType,depth = 8))
+//  Fifo.io.enq.bits := LDR
+//  Fifo.io.enq.valid:= LDR_Valid
+//  Fifo.io.deq.ready:= readFifo
+//  Fifo.scaledDepth := scaledDepth
+  lsu_pe_io.dataToPE := LDR
+//  lsu_pe_io.dataToPE := Fifo.io.deq.bits
 //  lsu_pe_io.valid := Fifo.io.deq.valid
   lsu_crossbar_io.dataToCrossbar := STR
 
@@ -114,22 +115,22 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=68,bankNu
     printf(p"Pe data: ${lsu_pe_io.dataFromPE}\n")
   }
 
-  def PrintFifo(): Unit = {
-    printf(p"Fifo Din: ${Fifo.io.enq.bits}\n")
-    printf(p"Din Valid : ${Fifo.io.enq.valid}\n")
-    printf(p"Din Ready : ${Fifo.io.enq.ready}\n")
-
-    printf(p"Fifo Dout : ${Fifo.io.deq.bits}\n")
-    printf(p"Dout valid : ${Fifo.io.deq.valid}\n")
-    printf(p"Dout ready : ${Fifo.io.deq.ready}\n")
-  }
+//  def PrintFifo(): Unit = {
+//    printf(p"Fifo Din: ${Fifo.io.enq.bits}\n")
+//    printf(p"Din Valid : ${Fifo.io.enq.valid}\n")
+//    printf(p"Din Ready : ${Fifo.io.enq.ready}\n")
+//
+//    printf(p"Fifo Dout : ${Fifo.io.deq.bits}\n")
+//    printf(p"Dout valid : ${Fifo.io.deq.valid}\n")
+//    printf(p"Dout ready : ${Fifo.io.deq.ready}\n")
+//  }
 
 }
 
 object LSU_u extends App{
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=68,bankNum=8),
+      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=65,bankNum=8),
       Array(
         "--target-dir","output/LSU"
       )
