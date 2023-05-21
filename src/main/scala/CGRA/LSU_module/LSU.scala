@@ -2,53 +2,60 @@ package CGRA.LSU_module
 import chisel3.{Input, UInt, _}
 import chisel3.util._
 import CGRA._
+import firrtl.ir.UIntType
 
 
-class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=65,bankNum:Int=8,fifoDepth:Int = 8) extends Module {
+class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=71,bankNum:Int=8) extends Module {
   val lsu_crossbar_io = IO(new LsuCrossbarIO(dType = dType, addrWidth = addrWidth))
   val lsu_pe_io = IO(new LsuPeIO(dType =dType ))
   val lsu_ivg_io =  IO(new LsuIvgIO())
   val config_io = IO(new LsuConfigIO(LSU_InstWidth=LSU_InstWidth)   )
 
 
-  assume(LSU_InstWidth == ( addrWidth * 7 + 2*log2Ceil(bankNum) + 3 ))
-  val LSU_configReg = RegInit(UInt(LSU_InstWidth.W),0.U)
+  assume(LSU_InstWidth == ( addrWidth * 7 + 2*log2Ceil(bankNum) + 9 ))
+  val configMem = SyncReadMem(8,UInt(LSU_InstWidth.W))
 
-  val configVec = LSU_configReg.asTypeOf(MixedVec(Seq(
-    UInt(addrWidth.W), //stride1
+  val LSU_configRead = Wire(UInt(LSU_InstWidth.W))
+
+  val configVec = LSU_configRead.asTypeOf(MixedVec(Seq(
     UInt(addrWidth.W), //stride0
-    UInt(addrWidth.W),//start1
+    UInt(addrWidth.W), //stride1
     UInt(addrWidth.W), //start0
-    UInt(addrWidth.W), //max1
+    UInt(addrWidth.W),//start1
     UInt(addrWidth.W), //max0
+    UInt(addrWidth.W), //max1
     UInt(addrWidth.W),//d1_N 8
     UInt(log2Ceil(bankNum).W), // N
     UInt(log2Ceil(bankNum).W),//log2_N 3
     UInt(1.W),//storeSel 1  bit1 from load  bit0 from Pe
     UInt(1.W),// mode  write 1 or read 0
-    Bool()//readFifo 1
-//    UInt(log2Ceil(fifoDepth).W) //fifoDepth 3
+    Bool(),//readFifo 1
+    UInt(3.W),//readAddr
+    UInt(3.W) //writeAddr
+    //    UInt(log2Ceil(fifoDepth).W) //fifoDepth 3
   )))
-  val stride1 = configVec(0)
-  val stride0 = configVec(1)
-  val start1 = configVec(2)
-  val start0 = configVec(3)
-  val max1 = configVec(4)
-  val max0 = configVec(5)
+  val stride0 = configVec(0)
+  val stride1 = configVec(1)
+  val start0 = configVec(2)
+  val start1 = configVec(3)
+  val max0 = configVec(4)
+  val max1 = configVec(5)
   val d1_N = configVec(6)
   val N = configVec(7)
   val log2_N = configVec(8)
   val storeSel = configVec(9)
   val  mode = configVec(10)
   val readFifo = configVec(11)
-//  val scaledDepth = configVec(12)
+  val readAddr = configVec(12)
+  val writeAddr = configVec(13)
+  //  val scaledDepth = configVec(12)
+  LSU_configRead := configMem.read(readAddr)
 
   val en = config_io.en
   lsu_crossbar_io.readOrWrite :=  mode
   when (en ===1.U){
-    LSU_configReg := config_io.bus
-  }.otherwise{
-    LSU_configReg := LSU_configReg
+//    LSU_configReg := config_io.bus
+    configMem.write(writeAddr,config_io.bus)
   }
 
   val LDR = RegInit(dType,0.U)
@@ -130,7 +137,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=65,bankNu
 object LSU_u extends App{
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=65,bankNum=8),
+      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=71,bankNum=8),
       Array(
         "--target-dir","output/LSU"
       )
