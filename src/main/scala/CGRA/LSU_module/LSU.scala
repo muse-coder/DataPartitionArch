@@ -4,20 +4,23 @@ import chisel3.util._
 import CGRA._
 
 
-class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=42,bankNum:Int=8) extends Module {
+class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=64,bankNum:Int=8) extends Module {
   val lsu_crossbar_io = IO(new LsuCrossbarIO(dType = dType, addrWidth = addrWidth))
   val lsu_pe_io = IO(new LsuPeIO(dType =dType ))
   val lsu_ivg_io =  IO(new LsuIvgIO())
   val config_io = IO(new LsuConfigIO(LSU_InstWidth=LSU_InstWidth)   )
 
 
-  assume(LSU_InstWidth == ( addrWidth*3 + 3*log2Ceil(bankNum)  + 1*log2Ceil(bankNum * bankNum)  + 3))
-  val LSU_configReg = RegInit(UInt(LSU_InstWidth.W),0.U)
-//  LSU_configReg := io.LSU_config
-  val configVec = LSU_configReg.asTypeOf(MixedVec(Seq(
+  assume(LSU_InstWidth == ( addrWidth*5 + 3*log2Ceil(bankNum)  + 1*log2Ceil(bankNum * bankNum)  + 9))
+  val configMem = SyncReadMem(8,UInt(LSU_InstWidth.W))
+
+  val LSU_configRead = Wire(UInt(LSU_InstWidth.W))
+  val configVec = LSU_configRead.asTypeOf(MixedVec(Seq(
     UInt(addrWidth.W), //S1 4
     UInt(addrWidth.W), //S2 4
     UInt(addrWidth.W), //SA 8
+	UInt(addrWidth.W), //max0
+    UInt(addrWidth.W), //max1
     UInt(log2Ceil(bankNum).W),//N 3
     UInt(log2Ceil(bankNum).W),//log2_B 3
     UInt(log2Ceil(bankNum).W),//B 3
@@ -25,25 +28,31 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=42,bankNu
     UInt(1.W),//storeSel 1  bit1 from load  bit0 from Pe
     UInt(1.W),// mode  store 1 or load 0
     Bool(),//readFifo 1
+    UInt(3.W),//readAddr
+    UInt(3.W) //writeAddr
+    //    UInt(log2Ceil(fifoDepth).W) //fifoDepth 3
   )))
   val S1 = configVec(0)
   val S2 = configVec(1)
   val SA = configVec(2)
-  val N = configVec(3)
-  val log2_B = configVec(4)
-  val B = configVec(5)
-  val log2_N_B = configVec(6)
-  val storeSel = configVec(7)
-  val  mode = configVec(8)
-  val readFifo = configVec(9)
-
+  val max0 = configVec(3)
+  val max1 = configVec(4)
+  val N = configVec(5)
+  val log2_B = configVec(6)
+  val B = configVec(7)
+  val log2_N_B = configVec(8)
+  val storeSel = configVec(9)
+  val  mode = configVec(10)
+  val readFifo = configVec(11)
+  val readAddr = configVec(12)
+  val writeAddr = configVec(13)
+  LSU_configRead := configMem.read(readAddr)
 
   val en = config_io.en
   lsu_crossbar_io.readOrWrite :=  mode
   when (en ===1.U){
-    LSU_configReg := config_io.bus
-  }.otherwise{
-    LSU_configReg := LSU_configReg
+//    LSU_configReg := config_io.bus
+    configMem.write(writeAddr,config_io.bus)
   }
 
   val LDR = RegInit(dType,0.U)
@@ -126,7 +135,7 @@ class LSU  [T <: Data ] (dType : T ,addrWidth:Int =8,LSU_InstWidth:Int=42,bankNu
 object LSU_u extends App{
   println(
     new (chisel3.stage.ChiselStage).emitVerilog(
-      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=42,bankNum=8),
+      new LSU(dType = UInt(32.W) ,addrWidth =8,LSU_InstWidth=64,bankNum=8),
       Array(
         "--target-dir","output/LSU"
       )

@@ -5,7 +5,7 @@ import CGRA.LSU_module.{IVG, LSU}
 import CGRA.PeArrayModule.{PeArray, PeRow}
 import chisel3._
 import chisel3.util._
-class Cascade [T<:Data] (dataWidth:Int,LSU_InstWidth:Int=42,row:Int=4,column:Int=4,addrWidth:Int=8, PeInstWidth:Int=13,bankNum:Int=8)extends  Module {
+class Cascade [T<:Data] (dataWidth:Int,LSU_InstWidth:Int=64,row:Int=4,column:Int=4,addrWidth:Int=8, PeInstWidth:Int=13,bankNum:Int=8)extends  Module {
   val external_io = IO(new ExternalIO(dataWidth = dataWidth,configWidth = 11))
   val IvgConfig_io = IO(new IvgConfigIO(addrWidth = addrWidth))
   val PErowConfig_io = IO(Input(Vec(row, UInt(PeInstWidth.W))))
